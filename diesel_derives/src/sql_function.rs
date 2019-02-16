@@ -8,6 +8,10 @@ use util::*;
 
 // Extremely curious why this triggers on a nearly branchless function
 #[allow(clippy::cyclomatic_complexity)]
+// for loop comes from `quote!`
+#[allow(clippy::for_loop_over_option)]
+// https://github.com/rust-lang/rust-clippy/issues/3768
+#[allow(clippy::useless_let_if_seq)]
 pub(crate) fn expand(input: SqlFunctionDecl) -> Result<TokenStream, Diagnostic> {
     let SqlFunctionDecl {
         mut attributes,
@@ -64,6 +68,18 @@ pub(crate) fn expand(input: SqlFunctionDecl) -> Result<TokenStream, Diagnostic> 
         .push(parse_quote!(__DieselInternal));
     let (impl_generics_internal, _, _) = generics_with_internal.split_for_impl();
 
+    let sql_type;
+    let numeric_derive;
+
+    if arg_name.is_empty() {
+        sql_type = None;
+        // FIXME: We can always derive once trivial bounds are stable
+        numeric_derive = None;
+    } else {
+        sql_type = Some(quote!((#(#arg_name),*)));
+        numeric_derive = Some(quote!(#[derive(DieselNumericOps)]));
+    }
+
     let mut tokens = quote! {
         use diesel::{self, QueryResult};
         use diesel::expression::{AsExpression, Expression, SelectableExpression, AppearsOnTable};
@@ -71,7 +87,8 @@ pub(crate) fn expand(input: SqlFunctionDecl) -> Result<TokenStream, Diagnostic> 
         use diesel::sql_types::*;
         use super::*;
 
-        #[derive(Debug, Clone, Copy, QueryId, DieselNumericOps)]
+        #[derive(Debug, Clone, Copy, QueryId)]
+        #numeric_derive
         pub struct #fn_name #ty_generics {
             #(pub(in super) #args,)*
             #(pub(in super) #type_args: ::std::marker::PhantomData<#type_args2>,)*
@@ -84,7 +101,7 @@ pub(crate) fn expand(input: SqlFunctionDecl) -> Result<TokenStream, Diagnostic> 
 
         impl #impl_generics Expression for #fn_name #ty_generics
         #where_clause
-            (#(#arg_name),*): Expression,
+            #(#sql_type: Expression,)*
         {
             type SqlType = #return_type;
         }

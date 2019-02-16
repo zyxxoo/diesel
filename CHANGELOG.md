@@ -10,6 +10,10 @@ for Rust libraries in [RFC #1105](https://github.com/rust-lang/rfcs/blob/master/
 
 * All previously deprecated items have been removed.
 
+* `no_arg_sql_function!` has been deprecated without replacement.
+  [`sql_function!`][sql-function-2-0-0] can now be used for functions with zero
+  arguments. See [the migration guide][2-0-migration] for more details.
+
 ### Changed
 
 * The way [the `Backend` trait][backend-2-0-0] handles its `RawValue` type has
