@@ -29,8 +29,8 @@ use sqlite::Sqlite;
 /// identifiers like `:memory:`.
 #[allow(missing_debug_implementations)]
 pub struct SqliteConnection {
-    statement_cache: StatementCache<Sqlite, Statement>,
-    raw_connection: RawConnection,
+    pub statement_cache: StatementCache<Sqlite, Statement>,
+    pub raw_connection: RawConnection,
     transaction_manager: AnsiTransactionManager,
 }
 
